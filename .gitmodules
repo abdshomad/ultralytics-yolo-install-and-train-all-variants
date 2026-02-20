@@ -1,0 +1,6 @@
+[submodule "chicken-detection-labelme-format"]
+	path = chicken-detection-labelme-format
+	url = https://github.com/abdshomad/chicken-detection-labelme-format.git
+[submodule "ultralytics"]
+	path = ultralytics
+	url = https://github.com/ultralytics/ultralytics.git

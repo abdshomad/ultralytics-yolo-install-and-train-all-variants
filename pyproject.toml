@@ -1,0 +1,9 @@
+[project]
+name = "ultralytics-yolo-install"
+version = "0.1.0"
+description = "Ultralytics YOLO installation and training environment for chicken detection"
+requires-python = ">=3.10"
+dependencies = [
+    "ultralytics",
+    "supervision>=0.27.0.post1",
+]

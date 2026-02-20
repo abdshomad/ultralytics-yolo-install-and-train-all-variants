@@ -1,0 +1,9 @@
+__pycache__/*
+secrets/*
+yolo-models/*
+logs/*
+*.log
+*.pt
+*.pth
+dataset.yaml
+.venv/
