@@ -23,6 +23,8 @@ def main():
     parser.add_argument("--imgsz", type=int, default=configs.DEFAULT_TRAINING_CONFIG["imgsz"])
     parser.add_argument("--lr", type=float, default=configs.DEFAULT_TRAINING_CONFIG["lr"])
     parser.add_argument("--resume", type=str, default=None, help="Resume from checkpoint path")
+    parser.add_argument("--fresh", action="store_true", help="Force fresh training (ignore existing weights)")
+    parser.add_argument("--new", action="store_true", help="Force fresh training (ignore existing weights, alias for --fresh)")
     parser.add_argument("--output-dir", type=str, default=None)
     parser.add_argument("--seed", type=int, default=configs.DEFAULT_TRAINING_CONFIG["seed"])
     args = parser.parse_args()
@@ -59,8 +61,22 @@ def main():
         "device": "cuda",
     }
     
-    if args.resume:
+    # Handle resume logic: prioritize explicit resume, then auto-resume, respect --fresh/--new
+    if args.fresh or args.new:
+        # Force fresh training - don't set resume
+        print("Fresh training requested (--fresh/--new), starting from scratch")
+    elif args.resume:
+        # User explicitly specified a resume path
         train_args["resume"] = args.resume
+        print(f"Resuming from specified checkpoint: {args.resume}")
+    else:
+        # Check for existing weights and auto-resume if found
+        weights_path = log_dir / "train" / "weights" / "last.pt"
+        if weights_path.exists():
+            train_args["resume"] = str(weights_path)
+            print(f"Found existing weights, auto-resuming from: {weights_path}")
+        else:
+            print("No existing weights found, starting fresh training")
     
     # Train the model
     results = model.train(**train_args)

@@ -88,6 +88,8 @@ Options:
 - `--epochs N` — Number of training epochs (default: 100)
 - `--batch-size N` — Batch size (default: 16)
 - `--imgsz N` — Image size (default: 640)
+- `--resume PATH` — Resume from specific checkpoint path
+- `--fresh` or `--new` — Force fresh training (ignore existing weights)
 
 ### Single Variant Training
 
@@ -118,7 +120,8 @@ uv run train-yolo-x.py
 | `--batch-size N` | Batch size per GPU | 16 |
 | `--imgsz N` | Image size for training | 640 |
 | `--lr` | Learning rate | 0.01 |
-| `--resume PATH` | Resume training from checkpoint | None |
+| `--resume PATH` | Resume from specific checkpoint path | Auto-detect if exists |
+| `--fresh` or `--new` | Force fresh training (ignore existing weights) | False |
 | `--output-dir DIR` | Output directory for checkpoints | From configs.py |
 | `--seed N` | Random seed | 0 |
 
@@ -143,10 +146,46 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 uv run train-yolo-s.py --epochs 100
 uv run train-yolo-all-variants.py --variants n s m
 ```
 
-#### Resume Training
+#### Auto-Resume Training (Default Behavior)
+
+By default, training scripts automatically detect and resume from existing checkpoints if they exist. This means you can simply re-run training commands and they will continue from where they left off:
+
 ```bash
-uv run train-yolo-m.py --resume yolo-models/yolo-m/last.pt
+# Automatically resumes from last.pt if it exists
+uv run train-yolo-m.py --epochs 100
+
+# Or train all variants - each will auto-resume if weights exist
+uv run train-yolo-all-variants.py
 ```
+
+#### Resume from Specific Checkpoint
+
+To resume from a specific checkpoint file:
+
+```bash
+uv run train-yolo-m.py --resume yolo-models/yolo-m/logs/train/weights/last.pt
+```
+
+#### Force Fresh Training
+
+To start training from scratch (ignoring existing weights), use `--fresh` or `--new`:
+
+```bash
+# Start fresh training, ignoring existing weights
+uv run train-yolo-m.py --fresh
+
+# Or using --new (same as --fresh)
+uv run train-yolo-m.py --new
+
+# Force fresh training for all variants
+uv run train-yolo-all-variants.py --fresh
+```
+
+**Resume Priority:**
+1. If `--fresh` or `--new` is specified → Start fresh training
+2. If `--resume PATH` is specified → Resume from the specified checkpoint
+3. If `last.pt` exists in the variant's weights directory → Auto-resume from it
+4. Otherwise → Start fresh training
 
 ## Inference / Test Detection
 
@@ -189,7 +228,9 @@ Trained models and checkpoints are saved to:
 
 Checkpoint files:
 - `best.pt` — Best model based on validation metrics
-- `last.pt` — Most recent checkpoint (for resuming)
+- `last.pt` — Most recent checkpoint (used for auto-resume)
+
+**Note:** The training scripts automatically detect `last.pt` files in `{variant}/logs/train/weights/` for auto-resume functionality. If a `last.pt` file exists, training will automatically resume from it unless `--fresh` or `--new` is specified.
 
 ### Log Directories
 

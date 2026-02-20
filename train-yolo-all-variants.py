@@ -37,7 +37,9 @@ def main():
     parser.add_argument("--epochs", type=int, default=configs.DEFAULT_TRAINING_CONFIG["epochs"])
     parser.add_argument("--batch-size", type=int, default=configs.DEFAULT_TRAINING_CONFIG["batch_size"])
     parser.add_argument("--imgsz", type=int, default=configs.DEFAULT_TRAINING_CONFIG["imgsz"])
-    parser.add_argument("--resume", type=str, default=None)
+    parser.add_argument("--resume", type=str, default=None, help="Resume from specific checkpoint path")
+    parser.add_argument("--fresh", action="store_true", help="Force fresh training (ignore existing weights)")
+    parser.add_argument("--new", action="store_true", help="Force fresh training (ignore existing weights, alias for --fresh)")
     args = parser.parse_args()
 
     project_root = configs.PROJECT_ROOT
@@ -73,8 +75,21 @@ def main():
             "--imgsz",
             str(args.imgsz),
         ]
-        if args.resume:
+        
+        # Handle resume logic: check for existing weights unless --fresh/--new is specified
+        if args.fresh or args.new:
+            cmd.append("--fresh")
+        elif args.resume:
+            # User explicitly specified a resume path
             cmd.extend(["--resume", args.resume])
+        else:
+            # Check if weights exist for this variant
+            log_dir = project_root / configs.LOG_DIRS[variant]
+            weights_path = log_dir / "train" / "weights" / "last.pt"
+            if weights_path.exists():
+                # Auto-resume from existing weights
+                cmd.extend(["--resume", str(weights_path)])
+                print(f"Found existing weights for {variant}, will resume from: {weights_path}")
 
         # Create variant-specific log directory and log file
         variant_log_dir = project_root / configs.LOG_DIRS[variant]
