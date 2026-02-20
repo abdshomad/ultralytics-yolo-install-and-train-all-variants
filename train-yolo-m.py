@@ -7,6 +7,7 @@ Usage:
 """
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 import configs
@@ -87,7 +88,10 @@ def main():
     if weights_dir.exists():
         import shutil
         if (weights_dir / "best.pt").exists():
-            shutil.copy2(weights_dir / "best.pt", output_dir / "best.pt")
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            version = "26"  # YOLO26 version
+            best_filename = f"yolo{version}{variant}-best-{date_str}.pt"
+            shutil.copy2(weights_dir / "best.pt", output_dir / best_filename)
         if (weights_dir / "last.pt").exists():
             shutil.copy2(weights_dir / "last.pt", output_dir / "last.pt")
         print(f"\nModel weights copied to {output_dir}")

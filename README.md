@@ -308,6 +308,12 @@ git submodule update --remote
 
 **Important:** Do not modify files within submodule directories directly. See `AGENTS.md` for more information.
 
+## TODO / Future Work
+
+- [ ] **TensorRT export** — Convert trained models to NVIDIA TensorRT format for faster GPU inference. See [TensorRT Export for YOLO26](https://docs.ultralytics.com/integrations/tensorrt/).
+- [ ] **Neural Magic DeepSparse** — Export to ONNX and benchmark/run inference with DeepSparse for CPU-optimized deployment. See [Optimizing YOLO26 with DeepSparse](https://docs.ultralytics.com/integrations/neural-magic/#step-4-benchmarking-performance) (Step 4: Benchmarking Performance).
+- [ ] **Sony IMX500 AI Camera** — Consider exporting models to IMX500 format for deployment on Raspberry Pi AI Camera (on-sensor inference). See [Sony IMX500 Export for YOLO11](https://docs.ultralytics.com/integrations/sony-imx500/).
+
 ## References
 
 - [Ultralytics YOLO GitHub](https://github.com/ultralytics/ultralytics)
