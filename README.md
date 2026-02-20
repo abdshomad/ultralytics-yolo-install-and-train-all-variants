@@ -196,7 +196,7 @@ Run detection on test images using a trained model:
 uv run run_test_detection.py
 
 # Specify variant and checkpoint
-uv run run_test_detection.py --variant m --checkpoint yolo-models/yolo-m/best.pt
+uv run run_test_detection.py --variant m --checkpoint yolo-models/yolo-m/yolo26m-100e-best-2026-02-20.pt
 
 # Adjust confidence threshold
 uv run run_test_detection.py --variant s --conf 0.3
@@ -227,7 +227,7 @@ Trained models and checkpoints are saved to:
 - **XLarge:** `yolo-models/yolo-x/`
 
 Checkpoint files:
-- `best.pt` — Best model based on validation metrics
+- `yolo26{variant}-{epochs}e-best-{date}.pt` — Best model based on validation metrics
 - `last.pt` — Most recent checkpoint (used for auto-resume)
 
 **Note:** The training scripts automatically detect `last.pt` files in `{variant}/logs/train/weights/` for auto-resume functionality. If a `last.pt` file exists, training will automatically resume from it unless `--fresh` or `--new` is specified.

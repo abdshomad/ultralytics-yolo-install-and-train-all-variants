@@ -7,11 +7,30 @@ Usage:
 """
 
 import argparse
+import shutil
 from datetime import datetime
 from pathlib import Path
 
+import torch
+
 import configs
 from ultralytics import YOLO
+
+
+def get_checkpoint_epoch(ckpt_path: Path) -> int:
+    """Return completed epoch (0-indexed) from checkpoint, or -1 if unknown."""
+    try:
+        ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+        epoch = int(ckpt.get("epoch", -1))
+        if epoch >= 0:
+            return epoch
+        # Fallback: if epoch=-1, assume completed train_args.epochs (e.g. finished run)
+        train_args = ckpt.get("train_args") or {}
+        if isinstance(train_args, dict):
+            return int(train_args.get("epochs", 100)) - 1  # 0-indexed
+        return -1
+    except Exception:
+        return -1
 
 
 def main():
@@ -48,11 +67,41 @@ def main():
     print(f"Epochs: {args.epochs}, batch_size: {args.batch_size}, imgsz: {args.imgsz}")
     print("=" * 60 + "\n")
 
-    model = YOLO(f'{configs.YOLO_VARIANTS[variant]}.pt')
-    
+    # Handle resume/continue: load checkpoint as weights (avoids incompatible checkpoint args)
+    if args.fresh or args.new:
+        print("Fresh training requested (--fresh/--new), starting from scratch")
+        model = YOLO(f'{configs.YOLO_VARIANTS[variant]}.pt')
+        epochs = args.epochs
+    elif args.resume:
+        weights_path = Path(args.resume)
+        if weights_path.exists():
+            print(f"Loading checkpoint as weights (continue training): {weights_path}")
+            model = YOLO(str(weights_path))
+            ckpt_epoch = get_checkpoint_epoch(weights_path)
+            epochs = max(1, args.epochs - ckpt_epoch - 1) if ckpt_epoch >= 0 else args.epochs
+            if ckpt_epoch >= 0:
+                print(f"Checkpoint at epoch {ckpt_epoch + 1}, training {epochs} more epochs (target total: {args.epochs})")
+        else:
+            print(f"Checkpoint not found: {weights_path}, starting from base model")
+            model = YOLO(f'{configs.YOLO_VARIANTS[variant]}.pt')
+            epochs = args.epochs
+    else:
+        weights_path = log_dir / "train" / "weights" / "last.pt"
+        if weights_path.exists():
+            print(f"Found existing weights, loading as model (continue training): {weights_path}")
+            model = YOLO(str(weights_path))
+            ckpt_epoch = get_checkpoint_epoch(weights_path)
+            epochs = max(1, args.epochs - ckpt_epoch - 1) if ckpt_epoch >= 0 else args.epochs
+            if ckpt_epoch >= 0:
+                print(f"Checkpoint at epoch {ckpt_epoch + 1}, training {epochs} more epochs (target total: {args.epochs})")
+        else:
+            print("No existing weights found, starting fresh training")
+            model = YOLO(f'{configs.YOLO_VARIANTS[variant]}.pt')
+            epochs = args.epochs
+
     train_args = {
         "data": str(dataset_yaml),
-        "epochs": args.epochs,
+        "epochs": epochs,
         "batch": args.batch_size,
         "imgsz": args.imgsz,
         "lr0": args.lr,
@@ -61,24 +110,7 @@ def main():
         "seed": args.seed,
         "device": "cuda",
     }
-    
-    # Handle resume logic: prioritize explicit resume, then auto-resume, respect --fresh/--new
-    if args.fresh or args.new:
-        # Force fresh training - don't set resume
-        print("Fresh training requested (--fresh/--new), starting from scratch")
-    elif args.resume:
-        # User explicitly specified a resume path
-        train_args["resume"] = args.resume
-        print(f"Resuming from specified checkpoint: {args.resume}")
-    else:
-        # Check for existing weights and auto-resume if found
-        weights_path = log_dir / "train" / "weights" / "last.pt"
-        if weights_path.exists():
-            train_args["resume"] = str(weights_path)
-            print(f"Found existing weights, auto-resuming from: {weights_path}")
-        else:
-            print("No existing weights found, starting fresh training")
-    
+
     # Train the model
     results = model.train(**train_args)
     
@@ -86,11 +118,10 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     weights_dir = log_dir / "train" / "weights"
     if weights_dir.exists():
-        import shutil
         if (weights_dir / "best.pt").exists():
             date_str = datetime.now().strftime("%Y-%m-%d")
             version = "26"  # YOLO26 version
-            best_filename = f"yolo{version}{variant}-best-{date_str}.pt"
+            best_filename = f"yolo{version}{variant}-{args.epochs}e-best-{date_str}.pt"
             shutil.copy2(weights_dir / "best.pt", output_dir / best_filename)
         if (weights_dir / "last.pt").exists():
             shutil.copy2(weights_dir / "last.pt", output_dir / "last.pt")

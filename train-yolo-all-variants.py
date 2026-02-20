@@ -34,7 +34,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--variants", nargs="+", choices=VARIANTS, default=VARIANTS)
-    parser.add_argument("--epochs", type=int, default=configs.DEFAULT_TRAINING_CONFIG["epochs"])
+    parser.add_argument("--epochs", "--epoch", dest="epochs", type=int, default=configs.DEFAULT_TRAINING_CONFIG["epochs"])
     parser.add_argument("--batch-size", type=int, default=configs.DEFAULT_TRAINING_CONFIG["batch_size"])
     parser.add_argument("--imgsz", type=int, default=configs.DEFAULT_TRAINING_CONFIG["imgsz"])
     parser.add_argument("--resume", type=str, default=None, help="Resume from specific checkpoint path")
